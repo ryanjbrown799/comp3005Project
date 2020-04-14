@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<head>
+	
+	<meta name=viewport content="width=device-width, initial-scale=1">
+	
+	<style>
+		
+    </style>
+	
+	 
+	</head>
+	<body>
+		<script>
+		  
+			$( document ).ready(function() {
+					
+			$( "#submit" ).click(function() {
+			
+				var user = {
+					'username' : $("#username").val(),
+					'password' : $("#password").val()
+				};
+			
+				$.ajax({
+				url: '/login',
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(user),
+				success: function(response){
+					
+					if(response == "nope"){
+						alert("incorrect password or username");
+					}
+					if(response == "go")
+					{
+						window.location.href ="http://localhost:3000/dashboard";
+					}
+					console.log(response);
+					}
+				});
+			});
+
+			
+			
+			
+			
+			
+					
+			$( "#ownerlog" ).click(function() {
+			
+				var user = {
+					'username' : $("#username").val(),
+					'password' : $("#password").val()
+				};
+			
+				$.ajax({
+				url: '/loginman',
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(user),
+				success: function(response){
+					
+					if(response == "nope"){
+						alert("incorrect password or username");
+					}
+					if(response == "good")
+					{
+						window.location.href ="http://localhost:3000/manportal";
+					}
+					console.log(response);
+					}
+				});
+			});
+
+			
+			
+			$( "#reg" ).click(function() {
+				window.location.href = "http://localhost:3000/register";
+			
+			});
+			
+			
+			});
+			
+			
+			
+		</script>
+		
+		
+		<div align="center">
+		<font size="32">LOGIN</font> 
+		
+		<form>
+		  <label for="username">Username:</label><br>
+		  <input type="text" id="username" name="username"><br>
+		  
+		   <label for="password">Password:</label><br>
+		  <input type="text" id="password" name="password"><br>
+		  
+		  
+		</form><br><br>
+		<button type="button" id="submit">Login</button> 
+		<button type="button" id="ownerlog">Manager Login</button> 
+		<button type="button" id="reg">Register</button> 
+		</div>
+  
+  </body>
+</html>
