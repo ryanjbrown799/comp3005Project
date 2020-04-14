@@ -1,0 +1,516 @@
+<!doctype html>
+<html>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<head>
+	
+	<meta name=viewport content="width=device-width, initial-scale=1">
+	
+	<style>
+		#res_wrap{
+			overflow-y: scroll;
+			
+			height: 500px;
+			display: grid;
+		    grid-template-columns: repeat(5, 1fr);
+			grid-auto-rows: 200px;
+			column-gap: 10px;
+			row-gap: 1em;
+			
+		}
+		
+		#res_wrap {
+		  border: 2px solid #f76707;
+		  border-radius: 5px;
+		  background-color: #fff4e6;
+		}
+
+		#res_wrap > div {
+		  border: 2px solid #ffa94d;
+		  border-radius: 5px;
+		  background-color: #ffd8a8;
+		  padding: 1em;
+		  color: #d9480f;
+		}
+		
+		#res_wrap >div.highlight{
+			border: 2px solid #ffa94d;
+			border-radius: 5px;
+			background-color: #ad9679;
+			padding: 1em;
+			color: #d9480f;
+		
+		}
+		
+		#cont{
+			overflow-y: scroll;
+			
+			height:350px;
+			width: 50%;
+			border: 2px solid #f76707;
+			border-radius: 5px;
+			background-color: #fff4e6;
+			text-align: left;
+		
+		}
+		
+		#ords{
+			overflow-y: scroll;
+			
+			height:350px;
+			width: 50%;
+			border: 2px solid #f76707;
+			border-radius: 5px;
+			background-color: #fff4e6;
+			text-align: center;
+		
+		}
+
+		#iords{
+			display:flex;
+			justify-content: center;
+		}
+		
+		#cartcont{
+			
+			overflow-y: scroll;
+			height:350px;
+			width: 250px;
+			
+			border: 2px solid #f76707;
+			border-radius: 5px;
+			background-color: #fff4e6;
+			text-align: center;
+		
+		}
+		#cont >tr{
+			font-size: 20px;
+		}
+		#bookrect{
+			float:right;
+			text-align:center;
+			width:200px;
+			height:250px;
+			margin-top:7%;
+			margin-right:10%;
+			
+			background:grey;
+		}
+    </style>
+	
+	 
+	</head>
+	<body>
+		<script>
+		  
+			$( document ).ready(function() {
+					selected=null;
+
+					$( "#submit" ).click(function() {
+				
+					var bookinfo = {
+					'stype' : $('input[name=group1]:checked', '#group1').val(),
+					'keyword' : $('#search').val()
+					};
+				
+					$.ajax({
+					url: '/search',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(bookinfo),
+					success: function(response){
+						var data = response;
+						if(response=="error"){
+							alert("There was a problem with the search");
+						}
+						
+						if(response.length>0){
+							$('#res_wrap').empty();
+							for(var i=0;i<data.length;i++){
+								
+								$('#res_wrap').append($('<div id="'+data[i].isbn+'">').html('Name: '+data[i].title+'<br> ISBN: '+data[i].isbn));
+							}
+						}else{
+							alert("no results found");
+						
+						}
+					
+						console.log(response);
+						}
+					});
+				});	
+			
+				
+				$( "#all" ).click(function() {
+					var bookinfo = {
+					'stype' : 'all',
+					'keyword' : 'na'
+					};
+				
+					$.ajax({
+					url: '/search',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(bookinfo),
+					success: function(response){
+						var data = response;
+						if(response=="error"){
+							alert("There was a problem with the search");
+						}
+						
+						if(response.length>0){
+							$('#res_wrap').empty();
+							for(var i=0;i<data.length;i++){
+								
+								$('#res_wrap').append($('<div id="'+data[i].isbn+'">').html('Name: '+data[i].title+'<br> ISBN: '+data[i].isbn));
+							}
+						}else{
+							alert("no results found");
+						
+						}
+					
+						console.log(response);
+						}
+					});
+					
+					
+				});
+			
+		
+			$('#res_wrap').on('click', 'div', function () {
+				
+					if(selected == null){
+						selected = $(this).attr('id');
+						$(this).toggleClass('highlight');
+						getBookDetails(selected);
+						
+						return;
+					}
+					
+					if(selected == $(this).attr('id')){
+						
+						$(this).toggleClass('highlight');
+						selected = null;
+						$('#cont').empty();
+						$('#qty').empty();
+					
+						return;
+					}
+					
+					if(selected != $(this).attr('id')){
+					
+						
+						$('#res_wrap > div').removeClass('highlight');
+						
+						
+						selected = $(this).attr('id');
+						$(this).toggleClass('highlight');
+					
+						
+						getBookDetails(selected);
+						
+						
+						return;
+					}
+				
+				
+			});
+			
+			
+			
+			function getBookDetails(sel){
+				var book = {
+				'isbn' : sel
+				};
+				
+				$.ajax({
+				url: '/details',
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(book),
+				success: function(response){
+					var data = response;
+					if(response=="error"){
+						alert("There was a problem with the search");
+					}else{
+						$('#cont').empty();
+						$('#qty').empty();
+						$('#cont').append($('<div id="bookrect">').html('No cover available<br>for this title'));
+						$('#cont').append($('<tr>').html('ISBN: '+data.isbn+'<br>'+'Name: '+data.name+'<br>'+'pages: '+data.pages+'<br>'+'price: '+data.price+'<br>'+'Author(s): '));
+						
+						for(var i=0;i<data.authors.length;i++){
+							var name=[];
+							for(var k=0;k<2;k++){
+								name.push(data.authors[i][k]);
+								name.push(' ');
+							}
+							$('#cont').append($('<tr>').html(name));
+						}
+						$('#cont').append($('<tr>').html('Genre(s): '));
+						for(var i=0;i<data.genres.length;i++){
+							
+							$('#cont').append($('<tr>').html(data.genres[i].name));
+						}
+						$('#cont').append($('<tr>').html('onhand: '+data.onhand+'<br>'+' Publisher: '+data.pname));
+						
+						for(var i=1;i<=data.onhand;i++){
+							$('#qty').append($('<option>').text(i));
+						
+						}
+					}
+						
+					
+					console.log(response);
+					}
+				});
+			
+			}
+			
+			
+			$( "#cartb" ).click(function() {
+					var flag=0;
+					
+					$('#items > tbody > tr').each(function(index, tr) { 
+					   if (selected==tr.id){
+					   flag=1;
+					   }
+					});
+				
+				
+				if((selected!=null) && (flag==0) && ($('#qty').val() !=null) ){
+					
+						var data = {
+						'isbn':selected,
+						'qty': $('#qty').val()
+						};
+					
+						$.ajax({
+						url: '/addtocart',
+						type: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						success: function(response){
+						
+							if(response.length>0){
+								$('#items').empty();
+								
+								for(var i =0;i<response.length;i++){
+									$('#items').append($('<tr id="'+response[i].isbn+'">').html('ISBN: '+response[i].isbn+' QTY: '+response[i].qty));
+								}	
+							}
+						
+							console.log(response);
+							
+							
+							}
+						});
+					
+				}
+
+				if(flag==1){
+					alert("this item is already in your cart please remove it to change qty");
+				
+				}
+
+				
+			});
+				
+				function getcart(){
+				
+				
+				
+				
+					var data = {
+					'isbn':'na',
+					'qty': '0'
+					};
+					
+					$.ajax({
+					url: '/addtocart',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(data),
+					success: function(response){
+							$('#items').empty();
+							if(response.length>0){
+								
+								
+								for(var i =0;i<response.length;i++){
+									$('#items').append($('<tr id="'+response[i].isbn+'">').html('ISBN: '+response[i].isbn+' QTY: '+response[i].qty));
+								}	
+							}
+						
+							console.log(response);
+							
+							
+							}
+					});
+				}
+				
+				
+				function getorders(){
+				
+				
+					$.ajax({
+					url: '/getorders',
+					type: 'GET',
+					success: function(response){
+					
+						
+							console.log(response);
+							if(response.length >0){
+								var orders = [];
+								
+								for(var i=0;i<response.length;i++){
+									if(!orders.includes(response[i].order_number)){
+										orders.push(response[i].order_number);
+										$('#iords').append($('<tr>').html('<td>Order: '+response[i].order_number+'</td><td> Tracking Number: '+response[i].tracking+
+																																						'</td><td>Total: '+response[i].total));
+										
+									
+									}
+							
+									$('#iords').append($('<tr>').html('<td></td><td>*ISBN: '+response[i].isbn+' Name: '+response[i].name+' Qty: '+response[i].qty));
+								
+								}
+								
+							
+							}
+							
+							}
+					});
+				}
+				
+				$( "#trackb" ).on('click', function () {
+					var data={tracking: $("#track").val()};
+					
+					$.ajax({
+						url: '/track',
+						type: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						success: function(response){
+								console.log(response);
+								alert("This order is being shipped to "+response[0].str_num+' '+response[0].str_name+' '+response[0].city+' '+response[0].prov+
+									" and will be there when it gets there");
+								}
+					
+						});
+				
+				
+				});
+				
+				$( "#items" ).on('click', 'tr', function () {
+				
+					if (confirm("Are you sure you wish to remove "+this.id+" from your cart?")) {
+						var data = {
+						'isbn':this.id
+						};
+						
+						$.ajax({
+						url: '/deletecartitem',
+						type: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						success: function(response){
+							
+								if(response=='del'){
+									getcart();
+								
+								}
+								console.log(response);
+								
+								
+								}
+					
+						});
+					}else{return;}
+				
+				
+				});
+				
+				
+				getcart();
+				getorders();
+			
+			$( "#chkout" ).click(function() {
+				window.location.href = "http://localhost:3000/checkout"
+			});
+			
+			
+			
+			});
+			
+			
+			
+		</script>
+		
+		<div align="center">
+		<font size="32">LOOK INNA BOOK</font> 
+		
+		<form>
+		  <label for="search">Search</label><br>
+		  <input type="text" id="search" name="search">
+		  <button type="button" id="submit">Search</button>
+		  <button type="button" id="all">show all</button><br>
+		  <br>
+		  
+			<div id="group1">
+				<label for="bn">Book Name</label>
+				<input type="radio" id="bn" value="name" name="group1" checked>
+				<label for="isbn">ISBN</label>
+				<input type="radio" id="isbn" value="ISBN" name="group1">
+				<label for="an">Author Name</label>
+				<input type="radio" id="an" value="author" name="group1">
+				<label for="gn">Genre</label>
+				<input type="radio" id="gn" value="genre" name="group1">
+			</div>
+		</form>
+		
+		<div style="display:flex; justify-content: center;">
+			<div id="cont">
+			</div>
+			
+			<div id="cartcont">
+				<tr>CART</tr>
+				<br>
+				<tr>click on an item to remove it</tr>
+				<table id="items">
+				</table>
+			</div>
+		</div>
+		<br>
+		
+		<div id="cart">
+		<button type="button" id="cartb">add to cart</button>
+		<label for="qty">quantity</label>
+		<select id = "qty">
+               
+             </select>
+			 
+		<button type="button" id="chkout">Proceed to Checkout</button>
+		</div>
+		<br>
+		
+		<div id="res_wrap">
+		
+		</div>
+		<br>
+		<br>
+			<label for="track">Enter Tracking Number</label><br>
+			<input type="text" id="track" name="track">
+			<button type="button" id="trackb">Track</button>
+		<br>
+		<br>
+		<div id="ords">
+
+				<tr>Past Orders</tr>
+				<table id="iords" >
+				</table>
+
+			</div>
+			
+		</div>
+  
+  </body>
+</html>
