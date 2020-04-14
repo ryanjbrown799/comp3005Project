@@ -1,0 +1,645 @@
+<!doctype html>
+<html>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<head>
+	
+	<meta name=viewport content="width=device-width, initial-scale=1">
+	
+	<style>
+	#repcont{
+		
+		overflow:hidden;
+		overflow-y: scroll;
+		height: 400px;
+		width: 50%;
+		border: solid black 4px;
+		display:inline-block;
+		text-align:center;
+	}
+	
+	#pubWrap{
+		overflow:hidden;
+		overflow-y: scroll;
+		height: 160px;
+		
+		list-style-type: none;
+		}
+	#bookWrap{
+		
+		display: inline-block;
+		
+		overflow:hidden;
+		overflow-y: scroll;
+		height: 300px;
+		width: 400px;
+		list-style-type: none;
+		}
+	#container{
+		
+		display: inline-block;
+		width: 500px;
+		height: 300px;
+		border: solid black 4px;
+		overflow:hidden;
+		overflow-y: scroll;
+	}
+	
+	.highlight{
+		background-color : blue;
+	
+	}
+    </style>
+	
+	 
+	</head>
+	<body>
+		<script>
+		  
+			$( document ).ready(function() {
+				selected=null;
+				var socket = io();
+				
+				//request publishers info
+				socket.emit("manp",'connected');
+				socket.emit("manp",'getbooks');
+				
+				
+				//handle publisher info
+				socket.on("publist",function(data){
+					console.log(data);
+					var tempnames = [];
+					
+					data.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)); 
+					$('#pubLog').empty();
+					$('#options').empty();
+					$('#pubopt').empty();
+
+					
+					for(var i=0;i<data.length;i++){
+						if(!tempnames.includes(data[i].name)){
+						
+						$("#options").append(new Option(data[i].name, data[i].name));
+						$("#pubopt").append(new Option(data[i].name, data[i].name));
+						
+						tempnames.push(data[i].name);
+						$('#pubLog').append($('<li>').text('Name: '+data[i].name+' Bank Account: '+data[i].bankaccount+' Email: '+data[i].email+' Post Code: '+data[i].postalcode+' City: '
+							+data[i].city+' Province: '+data[i].prov+' Street Number: '+data[i].str_num+' Street Name: '+data[i].str_name));
+						$('#pubLog').append($('<li>').text('-----contact: '+data[i].phonenumber));
+						}
+						else{
+							$('#pubLog').append($('<li>').text('-----contact: '+data[i].phonenumber));
+						}
+						
+					}
+							
+				});
+				
+				//get book names and isbns and populate list
+				socket.on("booklist",function(data){
+					console.log(data);
+					selected=null;
+					$('#bookLog').empty();
+					for(var i=0;i<data.length;i++){
+						$('#bookLog').append($('<tr id ='+data[i].isbn+'>').text('ISBN: '+data[i].isbn+' Name: '+data[i].name));
+					}
+					
+				
+				});
+				
+				//handle details about book
+				socket.on("bookinfo",function(data){
+					console.log(data);
+					$('#selBook').empty();
+					$('#selBook').append($('<tr>').html('ISBN: '+data.isbn+'<br>'+'Name: '+data.name+'<br>'+'pages: '+data.pages+'<br>'+'price: '+data.pages+'<br>'+'Author(s): '));
+					for(var i=0;i<data.authors.length;i++){
+						var name=[];
+						for(var k=0;k<2;k++){
+							name.push(data.authors[i][k]);
+							name.push(' ');
+						}
+						$('#selBook').append($('<tr>').html(name));
+					}
+					$('#selBook').append($('<tr>').html('Genre(s): '));
+					for(var i=0;i<data.genres.length;i++){
+						console.log('here3');
+						$('#selBook').append($('<tr>').html(data.genres[i].name));
+					}
+					$('#selBook').append($('<tr>').html('onhand: '+data.onhand+'<br>'+' Publisher: '+data.pname+'<br>'+'Sale Percentage: '+data.sp));
+					
+				});
+				
+				
+				//select and highlight book from list
+				$('#bookLog').on('click', 'tr', function () {
+					
+					if(selected == null){
+						selected = $(this).attr('id');
+						$(this).toggleClass('highlight');
+						console.log(selected);
+						return;
+					}
+					
+					if(selected == $(this).attr('id')){
+						
+						$(this).toggleClass('highlight');
+						selected = null;
+						return;
+					}
+					
+					if(selected != $(this).attr('id')){
+					
+						$('#'+selected).toggleClass('highlight');
+						selected = $(this).attr('id');
+						$(this).toggleClass('highlight');
+						console.log(selected);
+						return;
+					}
+					
+				});
+			
+				//create a new publisher
+				$( "#submit" ).click(function() {
+			
+					var publisher = {
+						'name' : $("#name").val(),
+						'bankaccount' : $("#ba").val(),	
+						'email' : $("#email").val(),
+						'postalcode' : $("#pc").val(),	
+						'city'	: $("#city").val(),
+						'prov'	: $("#prov").val(),
+						'str_name' : $("#sn").val(),
+						'str_num' : $("#snum").val(),
+						'phonenumber' : $("#pn").val(),
+					};
+				
+					$.ajax({
+					url: '/pubcreate',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(publisher),
+					success: function(response){
+						if(response == 'fail'){
+							alert('sorry something went wrong please try again');
+						}
+						else if(response =='success'){
+							alert("publisher successfully created");
+							$("#addapub").each (function(){  
+								this.reset();
+							 }); 
+							socket.emit("manp",'connected');
+							
+						}
+						console.log(response);
+						}
+					});
+				});
+			
+			//add phone numbers to a publisher
+			$( "#anum" ).click(function() {
+				var data = {
+					'phonenumber' : $("#newpn").val(),
+					'name' :  $('#options').val()
+				};
+				socket.emit("addnum",data);
+				socket.emit("manp",'connected');
+				$('#newpn').val("");
+			});	
+			
+			//request info from selected book
+			$( "#getBook" ).click(function() {
+				if(selected !=null){
+					socket.emit("getManBookInfo",selected);
+					}
+
+			});	
+			
+			//create a new book
+			$( "#newBook" ).click(function() {
+				
+				var genres = $("#genre").val().split(",");
+				var afnames = $("#afname").val().split(",");
+				var alnames = $("#alname").val().split(",");
+				if (afnames.length != alnames.length)
+				{
+					alert("an author is missing a lastname");
+					return
+				}
+				else{
+					var book = {
+						'bname' : $("#bname").val(),
+						'isbn' : $("#isbn").val(),	
+						'pages' : $("#pages").val(),
+						'price' : $("#price").val(),	
+						'afname'	: afnames,
+						'alname'	: alnames,
+						'sp' : $("#sp").val(),
+						'genre' : genres,
+						'publisher' : $("#pubopt").val()
+					};
+				
+					$.ajax({
+					url: '/bookcreate',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(book),
+					success: function(response){
+						console.log(response);
+						if(response =="gotit"){
+							alert("book created");
+							
+							$("#addabook").each (function(){  
+								this.reset();
+								
+							 }); 
+							 socket.emit("manp",'getbooks');
+						}
+						
+						}
+					});
+					}
+			});
+			
+			//delete book from collection
+			$( "#delete" ).click(function() {
+			
+			if(selected!=null){
+				if (confirm("Are you sure you wish to delete!")) {
+					 
+				console.log(selected);
+				
+					var sel = {'isbn':selected};
+					$.ajax({
+					url: '/bookdelete',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(sel),
+					success: function(response){
+						if(response == "fail"){
+							alert("an error occured");
+						}
+						if(response == "deleted"){
+							socket.emit("manp",'getbooks');
+						}
+						console.log(response);
+					}
+				});
+				} else {
+					  return
+					} 
+			}
+			});
+			
+			
+			
+			function getExp(){
+			
+				$.ajax({
+					url: '/exptype',
+					type: 'GET',
+					success: function(response){
+						console.log(response);
+							$("#expopt").empty();
+						for(var i=0;i<response.length;i++){
+							$("#expopt").append(new Option(response[i].expname+" --cost: "+response[i].cost, response[i].expname));
+						}
+					}
+				});
+			
+				
+			}
+			
+			
+				$( "#createexp" ).click(function() {
+				var data ={
+				expname: $("#expT").val(),
+				cost: $("#cost").val()
+				};
+				
+				$.ajax({
+					url: '/createexp',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(data),
+					success: function(response){
+						console.log(response);
+						$("#expT").val('');
+						$("#cost").val('');
+						getExp();
+					}
+				});
+				
+				});
+				
+				$( "#addexp" ).click(function() {
+				var data ={
+				expname: $("#expopt").val(),
+				date1: $("#date1").val()
+				};
+				
+				$.ajax({
+					url: '/addexp',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(data),
+					success: function(response){
+						console.log(response);
+					}
+				});
+				
+			
+				});
+				
+				
+				$( "#getsales" ).click(function() {
+				var data ={
+					type: $("#salesby").val()
+				};
+				
+				$.ajax({
+					url: '/getsales',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(data),
+					success: function(response){
+					
+						if(data.type=='day'){
+							$('#rept').empty();
+							console.log(response);
+							for(var i=0;i<response.totday.length;i++){
+								$('#rept').append($('<tr>').html('DAY: '+response.totday[i].order_date+'  TOTAL SUM: '+response.totday[i].sum));
+								
+								for(var j=0;j<response.isbnperday[i].length;j++){
+								
+								
+								
+									$('#rept').append($('<tr>').html('SUM: '+response.isbnperday[i][j].sum+' ISBN: '+response.isbnperday[i][j].isbn));
+								}
+							}
+						
+						}
+					
+						else{
+					
+					
+							console.log(response);
+							$('#rept').empty();
+							for(var i=0;i<response.length;i++){
+								$('#rept').append($('<tr>').html('->'+JSON.stringify(response[i])));
+							}
+						
+						}
+					}
+				});
+				
+			
+				});
+			
+			
+			$( "#sve" ).click(function() {
+				
+				$.ajax({
+					url: '/sve',
+					type: 'get',
+					success: function(response){
+						console.log(response);	
+						var totc = (parseFloat(response.pubcosts) + parseFloat(response.excosts)).toFixed(2);
+						$('#rept').empty();
+						$('#rept').append($('<tr>').html('total revenue: '+parseFloat(response.totsale).toFixed(2)+'<br>total publisher costs: '+parseFloat(response.pubcosts).toFixed(2)
+												+'<br> total extra expenses: '+parseFloat(response.excosts).toFixed(2)+'<br>total costs: '+totc+
+														'<br>PROFIT: '+(parseFloat(response.totsale) - parseFloat(response.pubcosts) - parseFloat(response.excosts) ).toFixed(2) ));
+			
+					}
+					});
+				
+			
+				});
+				
+				
+				
+				$( "#reorder" ).click(function() {
+				$('#selBook').empty();
+				$.ajax({
+					url: '/reorder',
+					type: 'get',
+					success: function(response){
+						console.log(response);	
+						
+						if(response=='none'){
+							alert("all stock is above the threshold of 5");
+						}
+						else{
+						
+						var data ={
+							isbns: [],
+						};
+						
+						
+						$('#selBook').empty();
+						$('#selBook').append($('<tr>').html('The following have been reordered based on sum of their last month sales<br><br>'));
+						
+						for(var i=0;i<response.reorder.length;i++){
+							$('#selBook').append($('<tr>').html('--ISBN: '+response.reorder[i][0]+' Name: '+response.reorder[i][1]+' qty sold:'+response.reorder[i][2]));
+							
+							data.isbns.push([response.reorder[i][0],response.reorder[i][2]]);
+							
+						}
+						
+						$('#selBook').append($('<tr>').html('<br><br>The following have no sale data from last month, the default qty of 10 units will be ordered<br><br>'));
+						for(var i=0;i<response.neworder.length;i++){
+							$('#selBook').append($('<tr>').html('--ISBN: '+response.neworder[i][0]+' Name :'+response.neworder[i][1]));
+							
+							data.isbns.push([response.neworder[i][0],10]);
+						
+						}
+						
+						
+						console.log(data);
+						
+						$.ajax({
+							url: '/pubord',
+							type: 'POST',
+							contentType: 'application/json',
+							data: JSON.stringify(data),
+							success: function(response){
+								if(response=='confirm'){
+									alert('orders placed');
+								}
+						
+							}
+						});
+						
+						
+						}
+						
+						 
+					}
+					});
+				
+			
+				});
+			
+			getExp();
+
+		});
+			
+		</script>
+		
+		<div align="center">
+		<font size="32">Managers Portal</font> 
+		<br>
+		<p>Add publisher</p>
+		<form id="addapub">
+			
+		  <label for="name">Name:</label>
+		  <input type="text" id="name" name="name">
+		  
+		   <label for="ba">Bank Account:</label>
+		  <input type="text" id="ba" name="ba">
+		  
+		  <label for="email">Email:</label>
+		  <input type="text" id="email" name="email">
+		  <br>
+		  <br>
+		  <label for="pc">Postal Code:</label>
+		  <input type="text" id="pc" name="pc">
+		  
+		  <label for="city">City:</label>
+		  <input type="text" id="city" name="city">
+		  
+		  <label for="prov">Province:</label>
+		  <input type="text" id="prov" name="prov">
+		  <br>
+		  <br>
+		  <label for="sn">Street name:</label>
+		  <input type="text" id="sn" name="sn">
+		  
+		  <label for="snum">Street Number</label>
+		  <input type="text" id="snum" name="snum">
+		  
+		  <label for="pn">Phone Number:</label>
+		  <input type="text" id="pn" name="pn">
+		  <br>
+		  
+		</form><br>
+		 <button type="button" id="submit">Create</button> 
+		<br>
+		<br>
+		<select id="options">
+		</select>
+		<input type="text" id="newpn" name="newpn">
+		<button type="button" id="anum">Add Number</button> 
+		
+		<br>
+		<p>Publisher List</p>
+		<div id='pubWrap'>
+			<table id="pubLog"></table>	
+		</div>
+		
+		
+		<br>
+		<br>
+		<p>Add a new book</p>
+			<form id='addabook'>
+				<label for="bname">Book Name:</label>
+				<input type="text" id="bname" name="bname">
+				
+				<label for="isbn">ISBN:</label>
+				<input type="text" id="isbn" name="isbn">
+				
+				<label for="pages">Pages:</label>
+				<input type="text" id="pages" name="pages">
+				
+				<label for="price">Price:</label>
+				<input type="text" id="price" name="price">
+				<br>
+				<br>
+				<label for="afname">(seperate values with comma)Author(s) First Names:</label>
+				<input type="text" id="afname" name="afname">
+				
+				<label for="alname">(seperate values with comma)Author(s) Last Names:</label>
+				<input type="text" id="alname" name="alname">
+				<br>
+				<br>
+				<label for="genre">(seperate values with comma)Genre(s):</label>
+				<input type="text" id="genre" name="genre">
+				<br>
+				<br>
+				<label for="sp">Sale Percentage:</label>
+				<input type="text" id="sp" name="sp">
+				
+				<select id="pubopt">
+				</select>
+			</form><br>
+			<button type="button" id="newBook">Create</button> 
+			<br>	
+		
+		</div>
+		<br>
+		<br>
+		<br>
+		
+		<div style="text-align: center">
+		<button type="button" id="getBook">Get Book Info</button>
+		<button type="button" id="delete">Delete</button>
+		
+		<button type="button" id="reorder">REORDER</button>
+		
+		<p>Book List and Details</p>
+		<div id='bookWrap'>
+			
+			<table id="bookLog"></table>	
+		</div>	
+		
+		<div id="container">
+	
+			<table id="selBook" style="text-align:left"></table>
+		</div>
+		</div>
+		<br>
+		
+		<div style="text-align:center">
+		
+		<label for="expT">Expense name:</label>
+		<input type="text" id="expT" name="expT">
+		<label for="cost">Cost:</label>
+		<input type="text" id="cost" name="cost">
+		
+		<button type="button" id="createexp">Create a new expense</button>
+		<br>
+		<br>
+		
+		<select id="expopt">
+		</select>
+		
+		<label for="date1">Date (current if blank)</label>
+		<input type="text" id="date1" name="date1">
+		
+		<button type="button" id="addexp">add a new expense</button>
+		
+		<br>
+		</div>
+		
+		<div style="text-align:center">
+		<br>
+		<br>
+			<label for="salesby">Get sales for</label>
+			<select id="salesby">
+				<option value="day">DAY</option>
+				<option value="genre">Genre</option>
+				<option value="author">Author</option>
+				<option value="isbn">ISBN</option>
+			
+			</select>
+			<button type="button" id="getsales">GET</button>
+			<button type="button" id="sve">Sales vs Expenditures</button>
+			<br>
+			<p style="font-size: 24px;">REPORTS</p>
+			<div id="repcont">
+				<table id="rept" style="display:flex; justify-content:center;">
+				</table>
+			</div>
+		
+		</div>
+  </body>
+</html>
