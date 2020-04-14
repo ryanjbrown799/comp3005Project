@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<head>
+	
+	<meta name=viewport content="width=device-width, initial-scale=1">
+	
+	<style>
+		
+    </style>
+	
+	 
+	</head>
+	<body>
+		<script>
+		  
+			$( document ).ready(function() {
+			
+			
+			
+			$( "#submit" ).click(function() {
+			
+				var user = {
+					'username' : $("#username").val(),
+					'password' : $("#password").val(),
+					'fname' : $("#fname").val(),
+					'mname' : $("#mname").val(),
+					'lname' : $("#lname").val(),
+					'email' : $("#email").val(),
+					'phone' : $("#phone").val(),
+					'postalcode' : $("#postalcode").val(),
+					'city' : $("#city").val(),
+					'prov' : $("#prov").val(),
+					'st_num' : $("#st_num").val(),
+					'st_name' : $("#st_name").val(),
+					'cc_number' : $("#cc_number").val(),
+					'expiry' : $("#expiry").val(),
+					'pin' : $("#pin").val()
+				};
+			
+			
+			
+				$.ajax({
+				url: '/reg',
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(user),
+				success: function(response){
+					if(response == 'fail'){
+						alert('sorry something went wrong please try again');
+					}
+					else if(response =='success'){
+						alert("user successfully created");
+						window.location.href = "http://localhost:3000/";
+					}
+					console.log(response);
+					}
+				});
+			});
+
+			
+			});
+			
+			
+			
+		</script>
+		
+		
+		<div align="center">
+		<font size="32">REGISTRATION</font> 
+		
+		<form>
+		  <label for="username">Username:</label><br>
+		  <input type="text" id="username" name="username"><br>
+		  
+		   <label for="password">Password:</label><br>
+		  <input type="text" id="password" name="password"><br>
+		  
+		  <label for="fname">First name:</label><br>
+		  <input type="text" id="fname" name="fname"><br>
+		  
+		  <label for="mname">Middle name:</label><br>
+		  <input type="text" id="mname" name="mname"><br>
+		  
+		  <label for="lname">Last name:</label><br>
+		  <input type="text" id="lname" name="lname"><br>
+		  
+		  <label for="email">Email:</label><br>
+		  <input type="text" id="email" name="email"><br>
+		  
+		  <label for="phone">phone:</label><br>
+		  <input type="text" id="phone" name="phone"><br>
+		  
+		  <label for="postalcode">Postal Code:</label><br>
+		  <input type="text" id="postalcode" name="postalcode"><br>
+		  
+		  <label for="city">City:</label><br>
+		  <input type="text" id="city" name="city"><br>
+		  
+		  <label for="prov">Province:</label><br>
+		  <input type="text" id="prov" name="prov"><br>
+		  
+		  <label for="st_num">Street Number:</label><br>
+		  <input type="text" id="st_num" name="st_num"><br>
+		  
+		  <label for="st_name">Street Name:</label><br>
+		  <input type="text" id="st_name" name="st_name"><br>
+		  
+		  <label for="cc_number">Credit Card:</label><br>
+		  <input type="text" id="cc_number" name="cc_number"><br>
+		  
+		   <label for="expiry">Expiry:</label><br>
+		  <input type="text" id="expiry" name="expiry"><br>
+		  
+		   <label for="pin">Pin:</label><br>
+		  <input type="text" id="pin" name="pin"><br>
+		  
+		  
+		</form><br><br>
+		 <button type="button" id="submit">Register</button> 
+		
+		</div>
+  
+  </body>
+</html>
