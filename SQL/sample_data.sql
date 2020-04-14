@@ -120,7 +120,7 @@ INSERT INTO expenditure VALUES('Boxes',20.00);
 INSERT INTO expenditure VALUES('Packaging',10.99);
 INSERT INTO expenditure VALUES('Tape',2.99);
 
-INSERT INTO extras VALUES('admin','Tape');
+INSERT INTO extras(name, expname) VALUES('admin','Tape');
 
 
 
