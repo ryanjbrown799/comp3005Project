@@ -1,0 +1,303 @@
+<!doctype html>
+<html>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<head>
+	
+	<meta name=viewport content="width=device-width, initial-scale=1">
+	
+	<style>
+		
+    </style>
+	
+	 
+	</head>
+	<body>
+		<script>	
+		
+			$( document ).ready(function() {
+				var tot = {
+				  val: 0, 
+				  upval: function(inc) {
+					this.val +=inc;
+					$('#total').empty();
+					$('#total').append($('<tr>').html('TOTAL: '+(this.val).toFixed(2)));
+				  
+				  },
+				  getval(){
+					return this.val;
+				  }
+				  
+				  
+				};
+
+				var total = Object.create(tot);
+				
+				function getcart(){
+						var data = {
+						'isbn':'na',
+						'qty': '0'
+						};
+						
+						$.ajax({
+						url: '/addtocart',
+						type: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						success: function(response){
+								$('#items').empty();
+								
+								if(response.length>0){
+									
+									
+									for(var i =0;i<response.length;i++){
+										
+										getBookDetails(response[i].isbn,response[i].qty);
+									}	
+								
+							
+								}
+							
+								console.log(response);
+								
+								
+								}
+						});
+					}
+					
+					function getBookDetails(sel,qty){
+						var book = {
+						'isbn' : sel
+						};
+						
+						$.ajax({
+						url: '/details',
+						type: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify(book),
+						success: function(response){
+							var data = response;
+							if(response=="error"){
+								alert("There was a problem getting your cart");
+							}else{
+								
+								$('#cont').append($('<tr>').html('<u>'+'ISBN: '+data.isbn+'</u>'+'<br>'+'Name: '+data.name+'<br>'+'price: '+data.price));
+								
+								
+								console.log(data.onhand);
+								console.log(qty);
+								if(parseInt(data.onhand) >= parseInt(qty)){
+									$('#cont').append($('<tr>').html('qty: '+qty+'<br>'));
+									total.upval(parseInt(qty)*parseFloat(data.price));
+								
+								}
+								if(parseInt(data.onhand) < parseInt(qty))
+								{
+									$('#cont').append($('<tr>').html('qty: '+data.onhand+'<br>'));
+									total.upval(parseInt(data.onhand)*parseFloat(data.price));
+									alert("Due to low inventory for the book "+data.name+" we had to change the qty of your order from "+qty+" to "+data.onhand)
+									
+									var data={
+									isbn : data.isbn,
+									qty: data.onhand
+									};
+									
+									$.ajax({
+										url: '/updateqty',
+										type: 'POST',
+										contentType: 'application/json',
+										data: JSON.stringify(data),
+										success: function(response){
+											console.log(response);
+												
+										}	
+										});
+									
+								}
+								
+								
+								
+							}
+							console.log(response);
+							}
+						});
+					
+					}
+					
+					function GetUserInfo(){
+						
+						$.ajax({
+						  url: '/getuserdetails',
+						  type: 'GET',
+						  success: function(resp){
+							
+							udata = resp[0];
+							$('#billing').append($('<tr>').html("Hello "+udata.username+" please select your shipping and billing"+'<br><br><br>'));
+							
+							$('#billing').append($('<tr>').html("Name: "+udata.fname+" "+udata.mname+" "+udata.lname+" credit card: "+udata.cc_number+" expiry: "+udata.expiry+" pin: "+udata.pin+'<br>'));
+							$('#add').append($('<tr>').html("Street Number: "+udata.str_num+" Street Name: "+udata.str_name+" Postal Code: "+udata.postalcode+" City: "+udata.city+" Province: "+udata.prov));
+					
+						  }
+						});
+					
+					}
+					
+					var udata = null;
+					
+					
+					$( "#checkout" ).click(function() {
+						
+						
+						var billT = $('input[name=bill]:checked', '#bill').val();
+						var shipT = $('input[name=ship]:checked', '#ship').val();
+						
+						var data = {
+							cc_number: '',
+							expiry:'',
+							pin:'',
+							postalcode: '',
+							str_name: '',
+							str_num:'', 
+							city: '',
+							prov: '',
+							total: total.getval()
+						};
+						
+						
+						if(billT == "regbill"){
+							data.cc_number = udata.cc_number;
+							data.expiry = udata.expiry;
+							data.pin = udata.pin;
+							
+						}
+						if(billT == "otherbill"){
+							data.cc_number = $("#cc_number").val();
+							data.expiry = $("#expiry").val();
+							data.pin = $("#pin").val();
+						}
+						
+						if(shipT=="regadd"){
+							data.postalcode = udata.postalcode;
+							data.str_name = udata.str_name;
+							data.str_num = udata.str_num;
+							data.city = udata.city;
+							data.prov = udata.prov;
+							
+						}
+						
+						if(shipT=="otheradd"){
+							data.postalcode = $("#postalcode").val();
+							data.str_name = $("#st_name").val();
+							data.str_num = $("#st_num").val();
+							data.city = $("#city").val();
+							data.prov = $("#prov").val();
+						}
+						
+					
+					
+						$.ajax({
+						url: '/order',
+						type: 'POST',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						success: function(response){
+							console.log(response);
+							if(response=='confirm'){
+								alert('Thank you your order has been placed');
+								window.location.href = "http://localhost:3000/dashboard";
+
+							}
+								
+						}
+							
+							
+						});
+					
+					});
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					GetUserInfo();
+					
+					getcart();
+				});
+			
+		</script>
+		<div align="center">
+			<p  style="font-size: 24px;">CART</p>
+			<div id="cont">	
+			</div>
+			<br>
+			<div style="font-size: 24px;" id="total">
+			</div>
+			<div id="billing">
+			
+			</div>
+				<br>
+				<label for="fname">First name:</label>
+				<input type="text" id="fname" name="fname">
+			  
+				<label for="mname">Middle name:</label>
+				<input type="text" id="mname" name="mname">
+			  
+				<label for="lname">Last name:</label>
+				<input type="text" id="lname" name="lname"><br><br>
+				
+				<label for="cc_number">Credit Card:</label>
+				<input type="text" id="cc_number" name="cc_number">
+				  
+				<label for="expiry">Expiry:</label>
+				<input type="text" id="expiry" name="expiry">
+				  
+				<label for="pin">Pin:</label>
+				<input type="text" id="pin" name="pin"><br><br>
+			
+			<div id="add">
+			</div>
+				<br>
+				<br>
+				<label for="st_num">Street Number:</label>
+				<input type="text" id="st_num" name="st_num">
+				  
+				<label for="st_name">Street Name:</label>
+				<input type="text" id="st_name" name="st_name"><br><br>
+				
+				<label for="postalcode">Postal Code:</label>
+				<input type="text" id="postalcode" name="postalcode">
+				  
+				<label for="city">City:</label>
+				<input type="text" id="city" name="city">
+				  
+				<label for="prov">Province:</label>
+				<input type="text" id="prov" name="prov"><br>
+				  
+				
+			<div id="bill">
+				<label for="rb">Use on file billing</label>
+				<input type="radio" id="rb" value="regbill" name="bill" checked>
+				<label for="ob">Use other billing (please enter above)</label>
+				<input type="radio" id="ob" value="otherbill" name="bill">
+			</div>
+			
+			<div id ="ship">
+				<label for="ra">Use on file shipping</label>
+				<input type="radio" id="ra" value="regadd" name="ship" checked>
+				<label for="oa">Use other shipping (please enter above)</label>
+				<input type="radio" id="oa" value="otheradd" name="ship">
+			</div>
+			<br>
+			<br>
+			<button type="button" id="checkout">CHECKOUT</button> 
+		</div>
+		
+
+  
+  </body>
+</html>
